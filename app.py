@@ -4,7 +4,7 @@ import google.generativeai as genai
 # CONFIGURAZIONE PAGINA
 st.set_page_config(page_title="Logistics Translator Pro", layout="wide", page_icon="🚛")
 
-# --- I TUOI PROMPT ORIGINALI (Integrali) ---
+# --- I TUOI PROMPT ORIGINALI (VERSIONE INTEGRALE) ---
 
 PROMPT_FIELD = """
 Ruolo: Agisci come un traduttore esperto in logistica internazionale e trasporti pesanti su gomma, specializzato nella catena del freddo.
@@ -46,47 +46,57 @@ Metriche di Confidenza: Se un termine tecnico è ambiguo, seleziona la traduzion
 Self-Correction: Assicurati che non siano rimaste ridondanze o termini troppo "coloriti" che potrebbero danneggiare la reputazione del brand in una conversazione B2B.
 """
 
-# --- INTERFACCIA APP ---
+# --- LOGICA DELL'APP ---
 
-st.sidebar.title("🔑 Accesso")
-st.sidebar.caption("⚡ Modalità PRO (Ragionamento Attivo)")
+st.sidebar.title("🔑 Impostazioni PRO")
 api_key = st.sidebar.text_input("Inserisci la tua API Key Gemini:", type="password")
 
+# Selettore per risolvere l'errore 404 (proviamo quelli che abbiamo visto funzionare)
+model_choice = st.sidebar.selectbox(
+    "Seleziona il Modello:",
+    ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+    help="Se ricevi errore 404, cambia modello. gemini-2.0-flash è attualmente il più reattivo."
+)
+
 if api_key:
-    genai.configure(api_key=api_key)
-    st.title("🚛 Logistics Translator Pro")
-    
-    registro = st.radio(
-        "Scegli il contesto di comunicazione:",
-        ["🚜 Field (Driver/Magazzino)", "🏢 B2B (Uffici/Partner/Clienti)"],
-        horizontal=True
-    )
-    
-    # MODELLO PRO (Ragionamento Profondo)
-    system_instruction = PROMPT_FIELD if "Field" in registro else PROMPT_B2B
-    model = genai.GenerativeModel('gemini-1.5-pro', system_instruction=system_instruction)
+    try:
+        genai.configure(api_key=api_key)
+        st.title("🚛 Logistics Translator Pro")
+        
+        registro = st.radio(
+            "Scegli il contesto di comunicazione:",
+            ["🚜 Field (Driver/Magazzino)", "🏢 B2B (Uffici/Partner/Clienti)"],
+            horizontal=True
+        )
+        
+        system_instruction = PROMPT_FIELD if "Field" in registro else PROMPT_B2B
+        model = genai.GenerativeModel(model_choice, system_instruction=system_instruction)
 
-    st.markdown("---")
-    col1, col2 = st.columns(2)
+        st.markdown("---")
+        col1, col2 = st.columns(2)
 
-    with col1:
-        lingua = st.selectbox("Traduci in:", ["Italiano", "Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
-        testo_da_tradurre = st.text_area("Incolla qui il testo (la lingua viene rilevata in automatico):", height=250, placeholder="Es: Testo in Russo da tradurre in Italiano o viceversa...")
+        with col1:
+            lingua = st.selectbox("Traduci in:", ["Italiano", "Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
+            testo_da_tradurre = st.text_area("Incolla qui il testo (rileva lingua automaticamente):", height=300)
 
-    with col2:
-        st.write(f"**Traduzione {'Informale' if 'Field' in registro else 'Professionale'} in {lingua}:**")
-        if testo_da_tradurre:
-            # Aggiunto lo "spinner" visivo mentre il modello ragiona
-            with st.spinner("Ragionamento e traduzione in corso..."):
-                try:
-                    response = model.generate_content(f"Traduci accuratamente in {lingua}: {testo_da_tradurre}")
-                    st.success(response.text)
-                    st.code(response.text, language=None) 
-                    st.caption("Clicca l'icona in alto a destra nel riquadro per copiare.")
-                except Exception as e:
-                    st.error(f"Errore: {e}")
-                    st.info("💡 Attendi qualche secondo e riprova.")
-        else:
-            st.info("In attesa di testo...")
+        with col2:
+            st.write(f"**Traduzione {'Informale' if 'Field' in registro else 'Professionale'} in {lingua}:**")
+            if testo_da_tradurre:
+                with st.spinner("Analisi e traduzione in corso..."):
+                    try:
+                        response = model.generate_content(f"Traduci in {lingua}: {testo_da_tradurre}")
+                        st.success(response.text)
+                        st.code(response.text, language=None)
+                    except Exception as e:
+                        if "429" in str(e):
+                            st.error("🚦 Quota superata! Attendi 60 secondi. (Suggerimento: configura la fatturazione su Google AI Studio per limiti PRO).")
+                        elif "404" in str(e):
+                            st.error(f"❌ Modello '{model_choice}' non disponibile. Prova 'gemini-2.0-flash'.")
+                        else:
+                            st.error(f"Errore: {e}")
+            else:
+                st.info("Scrivi a sinistra per iniziare.")
+    except Exception as e:
+        st.error(f"Errore inizializzazione: {e}")
 else:
-    st.warning("⚠️ Inserisci la tua API Key nella barra laterale per iniziare.")
+    st.warning("⚠️ Inserisci la tua API Key nella barra laterale.")

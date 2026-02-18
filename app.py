@@ -45,3 +45,48 @@ Precisione Tecnica: Se noti ambiguità nel testo originale, applica internamente
 Metriche di Confidenza: Se un termine tecnico è ambiguo, seleziona la traduzione con confidenza >95%.
 Self-Correction: Assicurati che non siano rimaste ridondanze o termini troppo "coloriti" che potrebbero danneggiare la reputazione del brand in una conversazione B2B.
 """
+
+# --- INTERFACCIA APP ---
+
+st.sidebar.title("🔑 Accesso")
+st.sidebar.caption("⚡ Modalità PRO (Ragionamento Attivo)")
+api_key = st.sidebar.text_input("Inserisci la tua API Key Gemini:", type="password")
+
+if api_key:
+    genai.configure(api_key=api_key)
+    st.title("🚛 Logistics Translator Pro")
+    
+    registro = st.radio(
+        "Scegli il contesto di comunicazione:",
+        ["🚜 Field (Driver/Magazzino)", "🏢 B2B (Uffici/Partner/Clienti)"],
+        horizontal=True
+    )
+    
+    # MODELLO PRO (Ragionamento Profondo)
+    system_instruction = PROMPT_FIELD if "Field" in registro else PROMPT_B2B
+    model = genai.GenerativeModel('gemini-1.5-pro', system_instruction=system_instruction)
+
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        lingua = st.selectbox("Traduci in:", ["Italiano", "Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
+        testo_da_tradurre = st.text_area("Incolla qui il testo (la lingua viene rilevata in automatico):", height=250, placeholder="Es: Testo in Russo da tradurre in Italiano o viceversa...")
+
+    with col2:
+        st.write(f"**Traduzione {'Informale' if 'Field' in registro else 'Professionale'} in {lingua}:**")
+        if testo_da_tradurre:
+            # Aggiunto lo "spinner" visivo mentre il modello ragiona
+            with st.spinner("Ragionamento e traduzione in corso..."):
+                try:
+                    response = model.generate_content(f"Traduci accuratamente in {lingua}: {testo_da_tradurre}")
+                    st.success(response.text)
+                    st.code(response.text, language=None) 
+                    st.caption("Clicca l'icona in alto a destra nel riquadro per copiare.")
+                except Exception as e:
+                    st.error(f"Errore: {e}")
+                    st.info("💡 Attendi qualche secondo e riprova.")
+        else:
+            st.info("In attesa di testo...")
+else:
+    st.warning("⚠️ Inserisci la tua API Key nella barra laterale per iniziare.")

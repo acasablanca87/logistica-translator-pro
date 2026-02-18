@@ -36,20 +36,23 @@ if api_key:
         horizontal=True
     )
     
+    # AGGIORNAMENTO MODELLO A GEMINI 3 FLASH (Versione 2026)
     system_instruction = PROMPT_FIELD if "Field" in registro else PROMPT_B2B
-    model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_instruction)
+    model = genai.GenerativeModel('gemini-3-flash', system_instruction=system_instruction)
 
     st.markdown("---")
     col1, col2 = st.columns(2)
 
     with col1:
-        lingua = st.selectbox("Traduci in:", ["Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
-        testo_da_tradurre = st.text_area("Inserisci il testo in Italiano:", height=250, placeholder="Es: Il carico deve viaggiare a 2 gradi...")
+        # AGGIUNTO ITALIANO ALLA LISTA
+        lingua = st.selectbox("Traduci in:", ["Italiano", "Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
+        testo_da_tradurre = st.text_area("Incolla qui il testo da tradurre (qualsiasi lingua):", height=250, placeholder="Es: Testo in Russo da tradurre in Italiano o viceversa...")
 
     with col2:
         st.write(f"**Traduzione {'Informale' if 'Field' in registro else 'Professionale'} in {lingua}:**")
         if testo_da_tradurre:
             try:
+                # Gemini rileva automaticamente la lingua di partenza
                 response = model.generate_content(f"Traduci in {lingua}: {testo_da_tradurre}")
                 st.success(response.text)
                 st.code(response.text, language=None) 

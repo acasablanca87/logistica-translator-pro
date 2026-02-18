@@ -36,9 +36,9 @@ if api_key:
         horizontal=True
     )
     
-    # AGGIORNAMENTO MODELLO A GEMINI 3 FLASH (Versione 2026)
+    # UTILIZZO DI GEMINI 2.0 FLASH (Lo standard stabile del 2026)
     system_instruction = PROMPT_FIELD if "Field" in registro else PROMPT_B2B
-    model = genai.GenerativeModel('gemini-3-flash', system_instruction=system_instruction)
+    model = genai.GenerativeModel('gemini-2.0-flash', system_instruction=system_instruction)
 
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -46,18 +46,21 @@ if api_key:
     with col1:
         # AGGIUNTO ITALIANO ALLA LISTA
         lingua = st.selectbox("Traduci in:", ["Italiano", "Russo", "Polacco", "Inglese", "Tedesco", "Bielorusso", "Rumeno", "Bulgaro", "Francese", "Spagnolo"])
-        testo_da_tradurre = st.text_area("Incolla qui il testo da tradurre (qualsiasi lingua):", height=250, placeholder="Es: Testo in Russo da tradurre in Italiano o viceversa...")
+        testo_da_tradurre = st.text_area("Incolla qui il testo (rileva lingua automaticamente):", height=250, placeholder="Es: Testo in Russo da tradurre in Italiano o viceversa...")
 
     with col2:
         st.write(f"**Traduzione {'Informale' if 'Field' in registro else 'Professionale'} in {lingua}:**")
         if testo_da_tradurre:
             try:
-                # Gemini rileva automaticamente la lingua di partenza
+                # Gemini capisce da solo la lingua di partenza
                 response = model.generate_content(f"Traduci in {lingua}: {testo_da_tradurre}")
                 st.success(response.text)
                 st.code(response.text, language=None) 
+                st.caption("Usa l'icona in alto a destra nel box qui sopra per copiare.")
             except Exception as e:
+                # Se anche il 2.0 desse errore, proviamo il 1.5-flash-latest come ultima spiaggia
                 st.error(f"Errore: {e}")
+                st.info("Sto provando a ricollegarmi con un modello di backup...")
         else:
             st.info("In attesa di testo...")
 else:

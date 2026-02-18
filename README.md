@@ -1,0 +1,1 @@
+# logistica-translator-pro
